@@ -84,15 +84,17 @@ const start = (sprites: Sprites): void => {
     history = [...history, gameState];
     isAnimating = true;
 
-    runMoveAnimation({ ctx, canvas, sprites, from: gameState, plan }).then(() => {
-      gameState = finalState;
-      isAnimating = false;
-      renderIdle();
+    runMoveAnimation({ ctx, canvas, sprites, from: gameState, plan }).then(
+      () => {
+        gameState = finalState;
+        isAnimating = false;
+        renderIdle();
 
-      if (isOnExit(gameState)) {
-        alert("You win!");
-      }
-    });
+        if (isOnExit(gameState)) {
+          alert("You win!");
+        }
+      },
+    );
   };
 
   const undo = (): void => {
