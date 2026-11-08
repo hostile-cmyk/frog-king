@@ -1,10 +1,24 @@
 import { forEach } from 'lodash/fp';
-import type { Position } from '../../types/basic';
+import type { Direction, Position } from '../../types/basic';
 import type { Fly, Frog } from '../../types/entities';
 import type { GameState } from '../../types/game';
 import type { Cell } from '../../types/grid';
+import { DIRECTION_DELTAS } from '../consts';
+import { getCell, isInBounds, isPassable } from '../grid';
 import { forEachWithIndex } from '../utils';
-import { FLY_COLOR, FROG_COLOR, PIXEL_SIZE, TERRAIN_COLORS, TRIGGER_COLORS } from './consts';
+import {
+	DIRECTIONS,
+	FLY_COLOR,
+	INACTIVE_KEY_OPACITY,
+	KEY_ROW_NORMAL,
+	KEY_ROW_PRESSED,
+	KEY_SPRITE_COLUMN,
+	PIXEL_SIZE,
+	SPRITE_SIZE,
+	TERRAIN_COLORS,
+	TRIGGER_COLORS,
+} from './consts';
+import type { Sprites } from './sprites';
 
 const fillCell = (ctx: CanvasRenderingContext2D, position: Position, color: string) => {
 	ctx.fillStyle = color;
@@ -19,12 +33,78 @@ const drawCell = (ctx: CanvasRenderingContext2D, cell: Cell, position: Position)
 	);
 };
 
-const drawFrog = (ctx: CanvasRenderingContext2D, frog: Frog) =>
-	fillCell(ctx, frog.position, FROG_COLOR);
+const drawSprite = (
+	ctx: CanvasRenderingContext2D,
+	image: HTMLImageElement,
+	position: Position,
+	column: number,
+	row: number,
+	alpha: number,
+) => {
+	ctx.globalAlpha = alpha;
+	ctx.drawImage(
+		image,
+		column * SPRITE_SIZE,
+		row * SPRITE_SIZE,
+		SPRITE_SIZE,
+		SPRITE_SIZE,
+		position.x * PIXEL_SIZE,
+		position.y * PIXEL_SIZE,
+		PIXEL_SIZE,
+		PIXEL_SIZE,
+	);
+	ctx.globalAlpha = 1;
+};
+
+const drawFrog = (ctx: CanvasRenderingContext2D, sprites: Sprites, frog: Frog) =>
+	drawSprite(ctx, sprites.frog, frog.position, 0, 0, 1);
 
 const drawFly = (ctx: CanvasRenderingContext2D, fly: Fly) => fillCell(ctx, fly.position, FLY_COLOR);
 
-export const renderGameState = (ctx: CanvasRenderingContext2D, state: GameState) => {
+const drawKey = (
+	ctx: CanvasRenderingContext2D,
+	state: GameState,
+	sprites: Sprites,
+	anchor: Position,
+	direction: Direction,
+	pressedDirection?: Direction,
+) => {
+	const delta = DIRECTION_DELTAS[direction];
+	const position = { x: anchor.x + delta.x, y: anchor.y + delta.y };
+	const tile = { x: Math.round(position.x), y: Math.round(position.y) };
+	const inBounds = isInBounds(state.grid, tile);
+	const passable = inBounds && isPassable(state.grid, state.flies, getCell(state.grid, tile));
+
+	return (
+		inBounds &&
+		drawSprite(
+			ctx,
+			sprites.keys,
+			position,
+			KEY_SPRITE_COLUMN[direction],
+			direction === pressedDirection ? KEY_ROW_PRESSED : KEY_ROW_NORMAL,
+			passable ? 1 : INACTIVE_KEY_OPACITY,
+		)
+	);
+};
+
+export const drawKeys = (
+	ctx: CanvasRenderingContext2D,
+	state: GameState,
+	sprites: Sprites,
+	anchor: Position,
+	pressedDirection?: Direction,
+) =>
+	forEach(
+		(direction: Direction) => drawKey(ctx, state, sprites, anchor, direction, pressedDirection),
+		DIRECTIONS,
+	);
+
+export const renderGameState = (
+	ctx: CanvasRenderingContext2D,
+	state: GameState,
+	sprites: Sprites,
+) => {
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
 	forEachWithIndex(
@@ -35,5 +115,5 @@ export const renderGameState = (ctx: CanvasRenderingContext2D, state: GameState)
 
 	forEach((fly: Fly) => drawFly(ctx, fly), state.flies);
 
-	drawFrog(ctx, state.frog);
+	drawFrog(ctx, sprites, state.frog);
 };

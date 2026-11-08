@@ -1,15 +1,9 @@
 import { find, isEqual, map } from 'lodash/fp';
-import { Direction, type Position } from '../../types/basic';
+import { type Direction, type Position } from '../../types/basic';
 import type { Fly } from '../../types/entities';
 import type { GameState } from '../../types/game';
+import { DIRECTION_DELTAS } from '../consts';
 import { getCell, isInBounds, isPassable } from '../grid';
-
-const DIRECTION_DELTAS: Record<Direction, Position> = {
-	[Direction.Left]: { x: -1, y: 0 },
-	[Direction.Right]: { x: 1, y: 0 },
-	[Direction.Up]: { x: 0, y: -1 },
-	[Direction.Down]: { x: 0, y: 1 },
-};
 
 const addPositions = (a: Position, b: Position) => ({ x: a.x + b.x, y: a.y + b.y });
 const subtractPositions = (a: Position, b: Position) => ({ x: a.x - b.x, y: a.y - b.y });
