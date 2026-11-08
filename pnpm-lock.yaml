@@ -11,6 +11,9 @@ importers:
       '@types/lodash':
         specifier: ^4.17.27
         version: 4.17.27
+      kontra:
+        specifier: ^10.0.2
+        version: 10.0.2
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -266,6 +269,10 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  kontra@10.0.2:
+    resolution: {integrity: sha512-NJfxmWtwDi1rWjj/fhOVwW4txjEVsDNgNNHNzc87YnsN7qZlZlkLQ0mWt7SN6WEAMH2KmX4evgL3Cmc2zVOXvQ==}
+    engines: {node: '>=14.0.0'}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -542,6 +549,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  kontra@10.0.2: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true

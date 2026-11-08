@@ -13,15 +13,13 @@ export const DIRECTIONS: Direction[] = [
   Direction.Right,
 ];
 
-export const KEY_SPRITE_COLUMN: Record<Direction, number> = {
-  [Direction.Up]: 1,
-  [Direction.Down]: 0,
-  [Direction.Left]: 2,
-  [Direction.Right]: 3,
+export const KEY_ANIMATION: Record<Direction, string> = {
+  [Direction.Up]: "up",
+  [Direction.Down]: "down",
+  [Direction.Left]: "left",
+  [Direction.Right]: "right",
 };
 
-export const KEY_ROW_NORMAL = 0;
-export const KEY_ROW_PRESSED = 1;
 export const INACTIVE_KEY_OPACITY = 0.5;
 
 export const SHAKE_MAGNITUDE = 2;

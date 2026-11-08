@@ -10,15 +10,14 @@ import {
 	DIRECTIONS,
 	FLY_COLOR,
 	INACTIVE_KEY_OPACITY,
-	KEY_ROW_NORMAL,
-	KEY_ROW_PRESSED,
-	KEY_SPRITE_COLUMN,
+	KEY_ANIMATION,
 	PIXEL_SIZE,
-	SPRITE_SIZE,
 	TERRAIN_COLORS,
 	TRIGGER_COLORS,
 } from './consts';
 import type { Sprites } from './sprites';
+
+type SpriteAnimation = Sprites['frog']['animations'][string];
 
 const fillCell = (ctx: CanvasRenderingContext2D, position: Position, color: string) => {
 	ctx.fillStyle = color;
@@ -33,31 +32,25 @@ const drawCell = (ctx: CanvasRenderingContext2D, cell: Cell, position: Position)
 	);
 };
 
-const drawSprite = (
+const drawAnimation = (
 	ctx: CanvasRenderingContext2D,
-	image: HTMLImageElement,
+	animation: SpriteAnimation,
 	position: Position,
-	column: number,
-	row: number,
 	alpha: number,
 ) => {
 	ctx.globalAlpha = alpha;
-	ctx.drawImage(
-		image,
-		column * SPRITE_SIZE,
-		row * SPRITE_SIZE,
-		SPRITE_SIZE,
-		SPRITE_SIZE,
-		position.x * PIXEL_SIZE,
-		position.y * PIXEL_SIZE,
-		PIXEL_SIZE,
-		PIXEL_SIZE,
-	);
+	animation.render({
+		x: position.x * PIXEL_SIZE,
+		y: position.y * PIXEL_SIZE,
+		width: PIXEL_SIZE,
+		height: PIXEL_SIZE,
+		context: ctx,
+	});
 	ctx.globalAlpha = 1;
 };
 
 const drawFrog = (ctx: CanvasRenderingContext2D, sprites: Sprites, frog: Frog) =>
-	drawSprite(ctx, sprites.frog, frog.position, 0, 0, 1);
+	drawAnimation(ctx, sprites.frog.animations.idle, frog.position, 1);
 
 const drawFly = (ctx: CanvasRenderingContext2D, fly: Fly) => fillCell(ctx, fly.position, FLY_COLOR);
 
@@ -74,15 +67,17 @@ const drawKey = (
 	const tile = { x: Math.round(position.x), y: Math.round(position.y) };
 	const inBounds = isInBounds(state.grid, tile);
 	const passable = inBounds && isPassable(state.grid, state.flies, getCell(state.grid, tile));
+	const animation =
+		direction === pressedDirection ?
+			`${KEY_ANIMATION[direction]}Pressed`
+		:	KEY_ANIMATION[direction];
 
 	return (
 		inBounds &&
-		drawSprite(
+		drawAnimation(
 			ctx,
-			sprites.keys,
+			sprites.keys.animations[animation],
 			position,
-			KEY_SPRITE_COLUMN[direction],
-			direction === pressedDirection ? KEY_ROW_PRESSED : KEY_ROW_NORMAL,
 			passable ? 1 : INACTIVE_KEY_OPACITY,
 		)
 	);

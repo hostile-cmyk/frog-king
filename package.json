@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@types/lodash": "^4.17.27",
+    "kontra": "^10.0.2",
     "lodash": "^4.18.1"
   }
 }
