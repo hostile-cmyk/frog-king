@@ -1,28 +1,28 @@
-import initial from 'lodash/fp/initial';
-import last from 'lodash/fp/last';
-import { NO_CANVAS_ERROR, NO_CONTEXT_ERROR, TWEEN_DURATION_MS } from './consts';
-import { demoLevel } from './consts/levels';
-import { directionFromDelta, directionFromKey } from './scripts/movement/input';
-import { applyTongue } from './scripts/movement/tongue';
-import { parseLevel } from './scripts/parser';
-import { PIXEL_SIZE } from './scripts/rendering/consts';
-import { drawKeys, renderGameState } from './scripts/rendering/render';
-import { loadSprites, type Sprites } from './scripts/rendering/sprites';
-import { interpolateGameState } from './scripts/rendering/tween';
-import { resolveHoppers } from './scripts/triggers';
-import { isOnExit } from './scripts/win';
-import './style.css';
-import type { Direction } from './types/basic';
-import type { GameState } from './types/game';
+import initial from "lodash/fp/initial";
+import last from "lodash/fp/last";
+import { NO_CANVAS_ERROR, NO_CONTEXT_ERROR, TWEEN_DURATION_MS } from "./consts";
+import { demoLevel } from "./consts/levels";
+import { directionFromDelta, directionFromKey } from "./scripts/movement/input";
+import { applyTongue } from "./scripts/movement/tongue";
+import { parseLevel } from "./scripts/parser";
+import { PIXEL_SIZE, SHAKE_MAGNITUDE } from "./scripts/rendering/consts";
+import { drawKeys, renderGameState } from "./scripts/rendering/render";
+import { loadSprites, type Sprites } from "./scripts/rendering/sprites";
+import { interpolateGameState } from "./scripts/rendering/tween";
+import { resolveHoppers } from "./scripts/triggers";
+import { isOnExit } from "./scripts/win";
+import "./style.css";
+import type { Direction } from "./types/basic";
+import type { GameState } from "./types/game";
 
-const canvas = document.querySelector<HTMLCanvasElement>('#game');
+const canvas = document.querySelector<HTMLCanvasElement>("#game");
 if (!canvas) {
-	throw new Error(NO_CANVAS_ERROR);
+  throw new Error(NO_CANVAS_ERROR);
 }
 
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext("2d");
 if (!ctx) {
-	throw new Error(NO_CONTEXT_ERROR);
+  throw new Error(NO_CONTEXT_ERROR);
 }
 
 let gameState = parseLevel(demoLevel);
@@ -33,120 +33,136 @@ canvas.height = gameState.grid.length * PIXEL_SIZE;
 ctx.imageSmoothingEnabled = false;
 
 const start = (sprites: Sprites): void => {
-	let heldDirection: Direction | undefined;
-	let history: GameState[] = [];
+  let heldDirection: Direction | undefined;
+  let history: GameState[] = [];
 
-	const renderIdle = (): void => {
-		renderGameState(ctx, gameState, sprites);
-		drawKeys(ctx, gameState, sprites, gameState.frog.position, heldDirection);
-	};
+  const renderIdle = (): void => {
+    renderGameState(ctx, gameState, sprites);
+    drawKeys(ctx, gameState, sprites, gameState.frog.position, heldDirection);
+  };
 
-	const animateTransition = (from: GameState, to: GameState, direction?: Direction): void => {
-		isAnimating = true;
-		let startTime: number | undefined;
+  const animateTransition = (
+    from: GameState,
+    to: GameState,
+    direction?: Direction,
+  ): void => {
+    isAnimating = true;
+    let startTime: number | undefined;
 
-		const step = (now: number): void => {
-			startTime ??= now;
-			const tweenTime = Math.min((now - startTime) / TWEEN_DURATION_MS, 1);
-			const frame = interpolateGameState(from, to, tweenTime);
-			renderGameState(ctx, frame, sprites);
-			drawKeys(ctx, to, sprites, frame.frog.position, direction);
+    const step = (now: number): void => {
+      startTime ??= now;
+      const tweenTime = Math.min((now - startTime) / TWEEN_DURATION_MS, 1);
+      const frame = interpolateGameState(from, to, tweenTime);
+      renderGameState(ctx, frame, sprites);
+      drawKeys(ctx, to, sprites, frame.frog.position, direction);
 
-			if (tweenTime < 1) {
-				requestAnimationFrame(step);
-				return;
-			}
+      const shake = SHAKE_MAGNITUDE * (1 - tweenTime);
+      canvas.style.transform = `translate(${(Math.random() * 2 - 1) * shake}px, ${(Math.random() * 2 - 1) * shake}px)`;
 
-			gameState = to;
-			isAnimating = false;
-			renderIdle();
+      if (tweenTime < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
 
-			if (isOnExit(gameState)) {
-				alert('You win!');
-			}
-		};
+      gameState = to;
+      isAnimating = false;
+      canvas.style.transform = "";
+      renderIdle();
 
-		requestAnimationFrame(step);
-	};
+      if (isOnExit(gameState)) {
+        alert("You win!");
+      }
+    };
 
-	const move = (direction: Direction): void => {
-		history = [...history, gameState];
-		animateTransition(gameState, resolveHoppers(applyTongue(gameState, direction)), direction);
-	};
+    requestAnimationFrame(step);
+  };
 
-	const undo = (): void => {
-		const previous = last(history);
+  const move = (direction: Direction): void => {
+    history = [...history, gameState];
+    animateTransition(
+      gameState,
+      resolveHoppers(applyTongue(gameState, direction)),
+      direction,
+    );
+  };
 
-		if (previous === undefined) {
-			return;
-		}
+  const undo = (): void => {
+    const previous = last(history);
 
-		history = initial(history);
-		animateTransition(gameState, previous);
-	};
+    if (previous === undefined) {
+      return;
+    }
 
-	const directionFromClick = (event: MouseEvent): Direction | undefined => {
-		const rect = canvas.getBoundingClientRect();
-		const column = Math.floor(((event.clientX - rect.left) / rect.width) * gameState.grid[0].length);
-		const row = Math.floor(((event.clientY - rect.top) / rect.height) * gameState.grid.length);
+    history = initial(history);
+    animateTransition(gameState, previous);
+  };
 
-		return directionFromDelta({
-			x: column - gameState.frog.position.x,
-			y: row - gameState.frog.position.y,
-		});
-	};
+  const directionFromClick = (event: MouseEvent): Direction | undefined => {
+    const rect = canvas.getBoundingClientRect();
+    const column = Math.floor(
+      ((event.clientX - rect.left) / rect.width) * gameState.grid[0].length,
+    );
+    const row = Math.floor(
+      ((event.clientY - rect.top) / rect.height) * gameState.grid.length,
+    );
 
-	renderIdle();
+    return directionFromDelta({
+      x: column - gameState.frog.position.x,
+      y: row - gameState.frog.position.y,
+    });
+  };
 
-	window.addEventListener('keydown', (event) => {
-		if (event.key === 'z') {
-			if (!isAnimating && !event.repeat) {
-				undo();
-			}
+  renderIdle();
 
-			return;
-		}
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "z") {
+      if (!isAnimating && !event.repeat) {
+        undo();
+      }
 
-		const direction = directionFromKey(event.key);
+      return;
+    }
 
-		if (direction === undefined) {
-			return;
-		}
+    const direction = directionFromKey(event.key);
 
-		heldDirection = direction;
+    if (direction === undefined) {
+      return;
+    }
 
-		if (isAnimating || event.repeat) {
-			return;
-		}
+    heldDirection = direction;
 
-		move(direction);
-	});
+    if (isAnimating || event.repeat) {
+      return;
+    }
 
-	window.addEventListener('keyup', (event) => {
-		if (directionFromKey(event.key) !== heldDirection) {
-			return;
-		}
+    move(direction);
+  });
 
-		heldDirection = undefined;
+  window.addEventListener("keyup", (event) => {
+    if (directionFromKey(event.key) !== heldDirection) {
+      return;
+    }
 
-		if (!isAnimating) {
-			renderIdle();
-		}
-	});
+    heldDirection = undefined;
 
-	canvas.addEventListener('click', (event) => {
-		if (isAnimating) {
-			return;
-		}
+    if (!isAnimating) {
+      renderIdle();
+    }
+  });
 
-		const direction = directionFromClick(event);
+  canvas.addEventListener("click", (event) => {
+    if (isAnimating) {
+      return;
+    }
 
-		if (direction === undefined) {
-			return;
-		}
+    const direction = directionFromClick(event);
 
-		move(direction);
-	});
+    if (direction === undefined) {
+      return;
+    }
+
+    move(direction);
+  });
 };
 
 loadSprites().then(start);
