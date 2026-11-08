@@ -1,3 +1,5 @@
+import initial from 'lodash/fp/initial';
+import last from 'lodash/fp/last';
 import { NO_CANVAS_ERROR, NO_CONTEXT_ERROR, TWEEN_DURATION_MS } from './consts';
 import { demoLevel } from './consts/levels';
 import { directionFromDelta, directionFromKey } from './scripts/movement/input';
@@ -32,13 +34,14 @@ ctx.imageSmoothingEnabled = false;
 
 const start = (sprites: Sprites): void => {
 	let heldDirection: Direction | undefined;
+	let history: GameState[] = [];
 
 	const renderIdle = (): void => {
 		renderGameState(ctx, gameState, sprites);
 		drawKeys(ctx, gameState, sprites, gameState.frog.position, heldDirection);
 	};
 
-	const animateTransition = (from: GameState, to: GameState, direction: Direction): void => {
+	const animateTransition = (from: GameState, to: GameState, direction?: Direction): void => {
 		isAnimating = true;
 		let startTime: number | undefined;
 
@@ -66,8 +69,21 @@ const start = (sprites: Sprites): void => {
 		requestAnimationFrame(step);
 	};
 
-	const move = (direction: Direction): void =>
+	const move = (direction: Direction): void => {
+		history = [...history, gameState];
 		animateTransition(gameState, resolveHoppers(applyTongue(gameState, direction)), direction);
+	};
+
+	const undo = (): void => {
+		const previous = last(history);
+
+		if (previous === undefined) {
+			return;
+		}
+
+		history = initial(history);
+		animateTransition(gameState, previous);
+	};
 
 	const directionFromClick = (event: MouseEvent): Direction | undefined => {
 		const rect = canvas.getBoundingClientRect();
@@ -83,6 +99,14 @@ const start = (sprites: Sprites): void => {
 	renderIdle();
 
 	window.addEventListener('keydown', (event) => {
+		if (event.key === 'z') {
+			if (!isAnimating && !event.repeat) {
+				undo();
+			}
+
+			return;
+		}
+
 		const direction = directionFromKey(event.key);
 
 		if (direction === undefined) {
