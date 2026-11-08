@@ -3,9 +3,10 @@ import last from "lodash/fp/last";
 import { NO_CANVAS_ERROR, NO_CONTEXT_ERROR, TWEEN_DURATION_MS } from "./consts";
 import { demoLevel } from "./consts/levels";
 import { directionFromDelta, directionFromKey } from "./scripts/movement/input";
-import { applyTongue } from "./scripts/movement/tongue";
+import { planMove } from "./scripts/movement/tongue";
 import { parseLevel } from "./scripts/parser";
 import { PIXEL_SIZE, SHAKE_MAGNITUDE } from "./scripts/rendering/consts";
+import { runMoveAnimation } from "./scripts/rendering/moveAnimation";
 import { drawKeys, renderGameState } from "./scripts/rendering/render";
 import { loadSprites, type Sprites } from "./scripts/rendering/sprites";
 import { interpolateGameState } from "./scripts/rendering/tween";
@@ -78,12 +79,20 @@ const start = (sprites: Sprites): void => {
   };
 
   const move = (direction: Direction): void => {
+    const plan = planMove(gameState, direction);
+    const finalState = resolveHoppers(plan.to);
     history = [...history, gameState];
-    animateTransition(
-      gameState,
-      resolveHoppers(applyTongue(gameState, direction)),
-      direction,
-    );
+    isAnimating = true;
+
+    runMoveAnimation({ ctx, canvas, sprites, from: gameState, plan }).then(() => {
+      gameState = finalState;
+      isAnimating = false;
+      renderIdle();
+
+      if (isOnExit(gameState)) {
+        alert("You win!");
+      }
+    });
   };
 
   const undo = (): void => {

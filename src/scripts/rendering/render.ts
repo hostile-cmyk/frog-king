@@ -1,8 +1,8 @@
-import { forEach } from 'lodash/fp';
+import { forEach, range } from 'lodash/fp';
 import type { Direction, Position } from '../../types/basic';
-import type { Fly, Frog } from '../../types/entities';
+import type { Fly } from '../../types/entities';
 import type { GameState } from '../../types/game';
-import type { Cell } from '../../types/grid';
+import type { Cell, Grid } from '../../types/grid';
 import { DIRECTION_DELTAS } from '../consts';
 import { getCell, isInBounds, isPassable } from '../grid';
 import { forEachWithIndex } from '../utils';
@@ -13,6 +13,8 @@ import {
 	KEY_ANIMATION,
 	PIXEL_SIZE,
 	TERRAIN_COLORS,
+	TONGUE_SEGMENT_LENGTH,
+	TONGUE_THICKNESS,
 	TRIGGER_COLORS,
 } from './consts';
 import type { Sprites } from './sprites';
@@ -49,10 +51,58 @@ const drawAnimation = (
 	ctx.globalAlpha = 1;
 };
 
-const drawFrog = (ctx: CanvasRenderingContext2D, sprites: Sprites, frog: Frog) =>
-	drawAnimation(ctx, sprites.frog.animations.idle, frog.position, 1);
+export const drawFrog = (
+	ctx: CanvasRenderingContext2D,
+	sprites: Sprites,
+	position: Position,
+	animation: 'idle' | 'tongue' = 'idle',
+) => drawAnimation(ctx, sprites.frog.animations[animation], position, 1);
 
 const drawFly = (ctx: CanvasRenderingContext2D, fly: Fly) => fillCell(ctx, fly.position, FLY_COLOR);
+
+// base/tip are cell-space positions; the tongue is tiled from the frog centre to the tip.
+export const drawTongue = (
+	ctx: CanvasRenderingContext2D,
+	sprites: Sprites,
+	base: Position,
+	tip: Position,
+) => {
+	const baseX = (base.x + 0.5) * PIXEL_SIZE;
+	const baseY = (base.y + 0.5) * PIXEL_SIZE;
+	const length = Math.hypot((tip.x - base.x) * PIXEL_SIZE, (tip.y - base.y) * PIXEL_SIZE);
+	const angle = Math.atan2(tip.y - base.y, tip.x - base.x);
+	const tipLength = Math.min(length, TONGUE_SEGMENT_LENGTH);
+	const bodyLength = length - tipLength;
+	const bodySlots = Math.ceil(bodyLength / TONGUE_SEGMENT_LENGTH);
+
+	ctx.save();
+	ctx.translate(baseX, baseY);
+	ctx.rotate(angle);
+
+	// Body tiles are clipped to the remaining body length so the root never overshoots the tip.
+	forEach(
+		(index: number) =>
+			sprites.tongue.animations.body.render({
+				x: index * TONGUE_SEGMENT_LENGTH,
+				y: -TONGUE_THICKNESS / 2,
+				width: Math.min(TONGUE_SEGMENT_LENGTH, bodyLength - index * TONGUE_SEGMENT_LENGTH),
+				height: TONGUE_THICKNESS,
+				context: ctx,
+			}),
+		range(0, bodySlots),
+	);
+
+	// Tip is anchored to the exact end so it stays glued to the target while the base shrinks.
+	sprites.tongue.animations.tip.render({
+		x: bodyLength,
+		y: -TONGUE_THICKNESS / 2,
+		width: tipLength,
+		height: TONGUE_THICKNESS,
+		context: ctx,
+	});
+
+	ctx.restore();
+};
 
 const drawKey = (
 	ctx: CanvasRenderingContext2D,
@@ -95,20 +145,26 @@ export const drawKeys = (
 		DIRECTIONS,
 	);
 
+export const clearCanvas = (ctx: CanvasRenderingContext2D) =>
+	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+export const drawGrid = (ctx: CanvasRenderingContext2D, grid: Grid) =>
+	forEachWithIndex(
+		(row: Cell[], y: number) =>
+			forEachWithIndex((cell: Cell, x: number) => drawCell(ctx, cell, { x, y }), row),
+		grid,
+	);
+
+export const drawFlies = (ctx: CanvasRenderingContext2D, flies: Fly[]) =>
+	forEach((fly: Fly) => drawFly(ctx, fly), flies);
+
 export const renderGameState = (
 	ctx: CanvasRenderingContext2D,
 	state: GameState,
 	sprites: Sprites,
 ) => {
-	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-	forEachWithIndex(
-		(row: Cell[], y: number) =>
-			forEachWithIndex((cell: Cell, x: number) => drawCell(ctx, cell, { x, y }), row),
-		state.grid,
-	);
-
-	forEach((fly: Fly) => drawFly(ctx, fly), state.flies);
-
-	drawFrog(ctx, sprites, state.frog);
+	clearCanvas(ctx);
+	drawGrid(ctx, state.grid);
+	drawFlies(ctx, state.flies);
+	drawFrog(ctx, sprites, state.frog.position);
 };

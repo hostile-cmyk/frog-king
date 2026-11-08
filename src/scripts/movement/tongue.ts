@@ -52,13 +52,31 @@ const resolveFlyHit = (
 	),
 });
 
-export const applyTongue = (state: GameState, direction: Direction): GameState => {
+export interface MovePlan {
+	kind: TongueHit['kind'];
+	to: GameState;
+	target?: Position;
+	flyId?: string;
+}
+
+export const planMove = (state: GameState, direction: Direction): MovePlan => {
 	const delta = DIRECTION_DELTAS[direction];
 	const hit = raycastTongue(state, addPositions(state.frog.position, delta), delta);
 
 	return (
-		hit.kind === 'block' ? resolveBlockHit(state, direction, delta, hit.position)
-		: hit.kind === 'fly' ? resolveFlyHit(state, direction, delta, hit.fly)
-		: { ...state, frog: { ...state.frog, facing: direction } }
+		hit.kind === 'block' ?
+			{
+				kind: 'block',
+				target: hit.position,
+				to: resolveBlockHit(state, direction, delta, hit.position),
+			}
+		: hit.kind === 'fly' ?
+			{
+				kind: 'fly',
+				target: hit.fly.position,
+				flyId: hit.fly.id,
+				to: resolveFlyHit(state, direction, delta, hit.fly),
+			}
+		:	{ kind: 'none', to: { ...state, frog: { ...state.frog, facing: direction } } }
 	);
 };

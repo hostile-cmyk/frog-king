@@ -1,11 +1,13 @@
 import * as kontra from 'kontra';
 import frogUrl from '../../assets/sprites/frog.png';
 import keysUrl from '../../assets/sprites/keys.png';
+import tongueUrl from '../../assets/sprites/tongue.png';
 import { SPRITE_SIZE } from './consts';
 
 export interface Sprites {
 	frog: kontra.SpriteSheet;
 	keys: kontra.SpriteSheet;
+	tongue: kontra.SpriteSheet;
 }
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
@@ -19,13 +21,17 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
 const frame = (index: number) => ({ frames: index, frameRate: 1 });
 
 export const loadSprites = async (): Promise<Sprites> => {
-	const [frogImage, keysImage] = await Promise.all([loadImage(frogUrl), loadImage(keysUrl)]);
+	const [frogImage, keysImage, tongueImage] = await Promise.all([
+		loadImage(frogUrl),
+		loadImage(keysUrl),
+		loadImage(tongueUrl),
+	]);
 
 	const frog = kontra.SpriteSheet({
 		image: frogImage,
 		frameWidth: SPRITE_SIZE,
 		frameHeight: SPRITE_SIZE,
-		animations: { idle: frame(0) },
+		animations: { idle: frame(0), tongue: frame(1) },
 	});
 
 	const keys = kontra.SpriteSheet({
@@ -44,5 +50,12 @@ export const loadSprites = async (): Promise<Sprites> => {
 		},
 	});
 
-	return { frog, keys };
+	const tongue = kontra.SpriteSheet({
+		image: tongueImage,
+		frameWidth: 2,
+		frameHeight: 3,
+		animations: { body: frame(0), tip: frame(1) },
+	});
+
+	return { frog, keys, tongue };
 };

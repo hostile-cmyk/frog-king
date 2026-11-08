@@ -22,7 +22,14 @@ export const KEY_ANIMATION: Record<Direction, string> = {
 
 export const INACTIVE_KEY_OPACITY = 0.5;
 
-export const SHAKE_MAGNITUDE = 2;
+export const SHAKE_MAGNITUDE = 10;
+export const SHAKE_DURATION_MS = 40;
+
+export const EXTEND_MS_PER_CELL = 24;
+export const MOVE_MS_PER_CELL = 48;
+
+export const TONGUE_SEGMENT_LENGTH = PIXEL_SIZE / 4;
+export const TONGUE_THICKNESS = PIXEL_SIZE / 6;
 
 export const TERRAIN_COLORS: Record<TerrainType, string> = {
   [TerrainType.Floor]: "#3b4252",
